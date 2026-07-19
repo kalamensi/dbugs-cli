@@ -33,6 +33,7 @@ def test_live_detail_has_references(client):
     vl = client.search_vulns(limit=1)
     detail = client.get_vuln(vl.rows[0].vulner_id)
     assert detail.vuln.vulner_id == vl.rows[0].vulner_id
+    assert isinstance(detail.references, list)
 
 
 def test_live_trends(client):

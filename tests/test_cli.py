@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 from dbugs_cli.cli import app
@@ -65,3 +64,18 @@ def test_api_error_json_mode_emits_error_object():
         result = runner.invoke(app, ["--json", "stats"])
     assert result.exit_code == 1
     assert json.loads(result.stdout) == {"error": "dbugs API error 500: boom"}
+
+
+def test_unexpected_exception_is_caught_without_traceback():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.stats.side_effect = RuntimeError("kaboom")
+        result = runner.invoke(app, ["stats"])
+    assert result.exit_code == 1
+    assert "kaboom" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_invalid_sort_exits_nonzero():
+    with patch("dbugs_cli.cli.DbugsClient"):
+        result = runner.invoke(app, ["vulns", "--sort", "bogus"])
+    assert result.exit_code != 0

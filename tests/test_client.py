@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import httpx
 import pytest
 import respx
@@ -53,6 +56,18 @@ def test_request_maps_transport_error():
 
 
 @respx.mock
+def test_request_maps_non_json_200_to_api_error():
+    respx.get(f"{DEFAULT_BASE_URL}stats").mock(
+        return_value=httpx.Response(200, text="<html>blocked</html>")
+    )
+    client = DbugsClient()
+    with pytest.raises(DbugsAPIError) as exc:
+        client._request("GET", "stats")
+
+    assert exc.value.status == 200
+
+
+@respx.mock
 def test_injected_client_still_gets_browser_headers():
     route = respx.get(f"{DEFAULT_BASE_URL}stats").mock(
         return_value=httpx.Response(200, json={"ok": True})
@@ -66,9 +81,6 @@ def test_injected_client_still_gets_browser_headers():
     assert sent.headers["user-agent"] == DEFAULT_UA
     assert sent.headers["referer"] == DEFAULT_REFERER
 
-
-import json
-from pathlib import Path
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

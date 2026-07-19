@@ -104,7 +104,10 @@ class DbugsClient:
                 reason = resp.text.strip() or f"HTTP {resp.status_code}"
             raise DbugsAPIError(resp.status_code, reason, details)
 
-        return resp.json()
+        try:
+            return resp.json()
+        except ValueError as exc:
+            raise DbugsAPIError(resp.status_code, "Non-JSON response from dbugs API") from exc
 
     def stats(self) -> Stats:
         return Stats.from_dict(self._request("GET", "stats"))

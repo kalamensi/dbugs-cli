@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass
 from functools import wraps
 from typing import Callable
@@ -60,6 +59,12 @@ def command(fn: Callable) -> Callable:
         try:
             return fn(ctx, *args, **kwargs)
         except DbugsAPIError as exc:
+            if state.json_output:
+                state.console.print_json(data={"error": str(exc)})
+            else:
+                state.err_console.print(f"[bold red]Error:[/bold red] {exc}")
+            raise typer.Exit(1)
+        except Exception as exc:  # noqa: BLE001 - last-resort guard so users never see a traceback
             if state.json_output:
                 state.console.print_json(data={"error": str(exc)})
             else:

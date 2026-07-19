@@ -52,7 +52,11 @@ def test_render_vuln_detail_shows_references():
 def test_render_trends_shows_posts_count():
     out = _text(formatters.render_trends(TrendList.from_dict(_fx("trending.json"))))
     assert "PT-2026-53941" in out
-    assert "5" in out
+    row_line = next(line for line in out.splitlines() if "PT-2026-53941" in line)
+    cells = [c.strip() for c in row_line.split("│") if c.strip()]
+    # Last populated cell in the row is the Posts column; must be the
+    # fixture's posts_count (5), not a coincidental "5" from the CVE id or date.
+    assert cells[-1] == "5"
 
 
 def test_render_posts_shows_text():
