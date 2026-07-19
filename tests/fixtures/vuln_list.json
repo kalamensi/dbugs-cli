@@ -1,0 +1,9 @@
+{"count": 392506, "rows": [
+  {"vulner_id": "PT-2026-61063", "cve_id": "CVE-2026-1234", "max_score": 9.8,
+   "max_severity": "CRITICAL", "created": "2026-07-18", "updated": "2026-07-19",
+   "has_fix": true, "has_exploits": false, "vendors": ["acme"], "products": ["widget"],
+   "researchers": [{"name": "alice"}]},
+  {"vulner_id": "PT-2026-61000", "cve_id": null, "max_score": 5.3,
+   "max_severity": "MEDIUM", "created": "2026-07-17", "updated": "2026-07-18",
+   "has_fix": false, "has_exploits": true, "vendors": [], "products": [], "researchers": []}
+]}

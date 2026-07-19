@@ -1,0 +1,5 @@
+{"count": 1, "rows": [
+  {"title": "Critical bug in Widget", "summary": "A summary.", "slug": "critical-widget",
+   "category": "cve", "image_path": "/x.png", "published": "2026-07-18", "body": "Full body.",
+   "cve_ids": ["CVE-2026-1234"], "products": ["widget"], "vendors": ["acme"], "vulners": []}
+]}

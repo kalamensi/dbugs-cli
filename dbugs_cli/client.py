@@ -9,6 +9,15 @@ from typing import Any
 
 import httpx
 
+from dbugs_cli.models import (
+    NewsItem,
+    NewsList,
+    Stats,
+    TrendList,
+    VulnDetail,
+    VulnList,
+)
+
 DEFAULT_BASE_URL = "https://dbugs.ptsecurity.com/v1/"
 DEFAULT_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -96,3 +105,92 @@ class DbugsClient:
             raise DbugsAPIError(resp.status_code, reason, details)
 
         return resp.json()
+
+    def stats(self) -> Stats:
+        return Stats.from_dict(self._request("GET", "stats"))
+
+    def search_vulns(
+        self,
+        *,
+        fts: str | None = None,
+        vendor: list[str] | None = None,
+        product: list[str] | None = None,
+        researcher: list[str] | None = None,
+        severity: list[str] | None = None,
+        score_from: float | None = None,
+        score_to: float | None = None,
+        has_exploit: bool | None = None,
+        has_fix: bool | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+        updated_from: str | None = None,
+        updated_to: str | None = None,
+        sort: str | None = None,
+        descending: bool = True,
+        limit: int = 20,
+        page: int = 1,
+        locale: str | None = None,
+    ) -> VulnList:
+        body: dict = {
+            "layer": "catalog",
+            "limit": limit,
+            "page": page,
+            "locale": locale or self.locale,
+        }
+        optional = {
+            "fts": fts,
+            "vendor": list(vendor) if vendor else None,
+            "product": list(product) if product else None,
+            "researcher": list(researcher) if researcher else None,
+            "severity": list(severity) if severity else None,
+            "score_from": score_from,
+            "score_to": score_to,
+            "has_exploits": has_exploit,
+            "has_fix": has_fix,
+            "created_from": created_from,
+            "created_to": created_to,
+            "updated_from": updated_from,
+            "updated_to": updated_to,
+        }
+        body.update({k: v for k, v in optional.items() if v is not None})
+        if sort:
+            body["sorts"] = [{"field": sort, "reversed": descending}]
+        return VulnList.from_dict(self._request("POST", "vulnerabilities", json_body=body))
+
+    def get_vuln(
+        self, vuln_id: str, fts: str | None = None, locale: str | None = None
+    ) -> VulnDetail:
+        params: dict = {"locale": locale or self.locale}
+        if fts:
+            params["fts"] = fts
+        return VulnDetail.from_dict(
+            self._request("GET", f"vulnerabilities/{vuln_id}", params=params)
+        )
+
+    def trends(self, locale: str | None = None) -> TrendList:
+        return TrendList.from_dict(
+            self._request("GET", "trending", params={"locale": locale or self.locale})
+        )
+
+    def trend_posts(self, vuln_id: str, limit: int = 5, page: int = 1) -> dict:
+        return self._request(
+            "GET", f"trending/{vuln_id}/posts", params={"limit": limit, "page": page}
+        )
+
+    def news(self, limit: int = 20, page: int = 1, locale: str | None = None) -> NewsList:
+        body = {"limit": limit, "page": page, "locale": locale or self.locale}
+        return NewsList.from_dict(self._request("POST", "news/", json_body=body))
+
+    def get_news(self, slug: str, locale: str | None = None) -> NewsItem:
+        return NewsItem.from_dict(
+            self._request("GET", f"news/{slug}", params={"locale": locale or self.locale})
+        )
+
+    def researcher(
+        self, name: str, limit: int = 20, page: int = 1, locale: str | None = None
+    ) -> dict:
+        return self._request(
+            "GET",
+            f"researchers/{name}",
+            params={"limit": limit, "page": page, "locale": locale or self.locale},
+        )

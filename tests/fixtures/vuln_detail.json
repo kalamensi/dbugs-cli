@@ -1,0 +1,12 @@
+{"vulner_id": "PT-2026-61063", "cve_id": "CVE-2026-1234", "max_score": 9.8,
+ "max_severity": "CRITICAL", "created": "2026-07-18", "updated": "2026-07-19",
+ "has_fix": true, "has_exploits": false, "vendors": ["acme"], "products": ["widget"],
+ "cwe_ids": ["CWE-79"], "impacts": ["rce"], "cvss": {"NVD": {}, "Mitre": {}},
+ "references": [
+   {"ref_url": "https://vuldb.com/vuln/380048/cti", "domain": "vuldb.com",
+    "source": "Note", "stars": 0, "forks": 0, "is_deleted": false},
+   {"ref_url": "https://sourcecodester.com", "domain": "sourcecodester.com",
+    "source": "Note", "stars": 0, "forks": 0, "is_deleted": false}],
+ "related_news": [], "duplicates": [],
+ "researchers": [{"place": 45677, "name": "alice", "company": null,
+                  "vulner_count": 1, "vulner_rating": 5.8, "verified": false}]}

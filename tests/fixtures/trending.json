@@ -1,0 +1,6 @@
+{"count": 1, "rows": [
+  {"lvl": 1, "posts_count": 5,
+   "vulnerability": {"vulner_id": "PT-2026-53941", "cve_id": "CVE-2026-58138",
+     "score": 8.1, "severity": "HIGH", "created": "2026-07-10", "updated": "2026-07-15",
+     "has_fix": false, "has_exploits": true, "vendors": ["acme"], "products": ["widget"]}}
+]}
