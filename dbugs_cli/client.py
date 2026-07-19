@@ -50,6 +50,23 @@ class DbugsClient:
                 "Accept": "application/json",
             },
         )
+        # Ensure the QRATOR-bypass headers are present unconditionally, even
+        # when a caller injects a pre-built httpx.Client.
+        #
+        # NOTE: httpx.Client() always pre-populates its own "User-Agent"
+        # (e.g. "python-httpx/0.28.1") and "Accept" ("*/*") headers, even
+        # when no headers are passed to its constructor — only "Referer" is
+        # left unset. That means headers.setdefault() would silently keep
+        # httpx's own User-Agent/Accept on an injected client and never
+        # apply ours, defeating the whole point of this transport layer
+        # (the Global Constraint requires the exact browser User-Agent and
+        # Referer on every request or the real API 403s). So User-Agent and
+        # Referer are force-set unconditionally here. Accept is applied with
+        # setdefault since it is a convenience default, not part of the
+        # anti-bot bypass, so an explicit caller preference is honored.
+        self._client.headers["User-Agent"] = DEFAULT_UA
+        self._client.headers["Referer"] = DEFAULT_REFERER
+        self._client.headers.setdefault("Accept", "application/json")
 
     def close(self) -> None:
         self._client.close()

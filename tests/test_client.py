@@ -50,3 +50,18 @@ def test_request_maps_transport_error():
 
     assert exc.value.status is None
     assert "reach" in str(exc.value).lower()
+
+
+@respx.mock
+def test_injected_client_still_gets_browser_headers():
+    route = respx.get(f"{DEFAULT_BASE_URL}stats").mock(
+        return_value=httpx.Response(200, json={"ok": True})
+    )
+    injected = httpx.Client(base_url=DEFAULT_BASE_URL)
+    client = DbugsClient(client=injected)
+    result = client._request("GET", "stats")
+
+    assert result == {"ok": True}
+    sent = route.calls.last.request
+    assert sent.headers["user-agent"] == DEFAULT_UA
+    assert sent.headers["referer"] == DEFAULT_REFERER
