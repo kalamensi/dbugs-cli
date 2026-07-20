@@ -4,6 +4,24 @@ A command-line client for the [dbugs](https://dbugs.ptsecurity.com/) vulnerabili
 database by Positive Technologies. Query vulnerabilities, trends, references,
 news, and researchers from your terminal.
 
+Output is rendered as [Rich](https://github.com/Textualize/rich) tables by
+default, or as raw API JSON with `--json` (pipe-friendly for `jq`). The tool is
+read-only and needs no API key or login.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `stats` | Global database totals |
+| `vulns` | Search / list vulnerabilities (filter, sort, export) |
+| `vuln <id>` | Full detail for one vulnerability, incl. references |
+| `trends` | Trending vulnerabilities (filtered/sorted client-side) |
+| `trend <id>` | Social-media posts driving a trend |
+| `news` | List / filter security news (filter, export) |
+| `news-item <slug>` | One news article |
+| `suggest products\|vendors [PATTERN]` | Discover valid `--product`/`--vendor` values |
+| `researcher <name>` | Researcher profile and stats |
+
 ## Install
 
 ```bash
@@ -82,6 +100,25 @@ read-only.
 ## Development
 
 ```bash
-pytest                 # unit tests (network mocked)
-DBUGS_LIVE=1 pytest    # also run tests against the live API
+pip install -e ".[dev]"   # install with dev deps (pytest, respx)
+pytest                    # unit tests (network mocked)
+DBUGS_LIVE=1 pytest       # also run tests against the live API
 ```
+
+### Project layout
+
+```
+dbugs_cli/
+  cli.py          Typer commands, argument parsing, error boundary
+  client.py       the only module that touches HTTP (+ browser headers)
+  models.py       dataclasses parsed from API responses (each keeps .raw)
+  transform.py    client-side filter/sort (used for trends)
+  export.py       auto-paginating full-result writer (JSON/JSONL)
+  formatters.py   pure model -> Rich renderable functions
+tests/            one file per module; HTTP mocked with respx
+docs/superpowers/ design specs and implementation plans
+```
+
+Modules are strictly layered: `cli → client → models`, with `transform`,
+`export`, and `formatters` as leaf helpers. See [CLAUDE.md](CLAUDE.md) for the
+conventions to follow when extending the tool.
