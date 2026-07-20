@@ -36,6 +36,12 @@ def run_export(
     rows is that page's raw row dicts. Loops from page 1 until the collected
     total reaches count, or until a page returns no rows (guards against an
     inconsistent count causing an infinite loop). Returns rows written.
+
+    For json output, the written document's "count" field reflects the number
+    of rows actually written (i.e. len(rows)), which can be fewer than the
+    API's reported total if the zero-row guard stops the export early. This
+    keeps the on-disk document internally self-consistent. The jsonl path has
+    no such field and is unaffected.
     """
     collected = 0
     count = 0
@@ -57,6 +63,6 @@ def run_export(
                 break
             page += 1
         if fmt == "json":
-            fh.write(json.dumps({"count": count, "rows": json_rows}, ensure_ascii=False))
+            fh.write(json.dumps({"count": collected, "rows": json_rows}, ensure_ascii=False))
     err_console.print(f"Exported {collected}/{count} rows → {path}")
     return collected

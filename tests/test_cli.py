@@ -212,6 +212,14 @@ def test_vulns_export_format_override(tmp_path):
     assert json.loads(out.read_text().splitlines()[0]) == {"vulner_id": "A"}
 
 
+def test_vulns_format_without_export_errors():
+    # BadParameter is caught by the shared `command` error boundary (cli.py),
+    # which re-raises typer.Exit(1) rather than propagating click's usual
+    # exit code 2 -- matches the convention used by test_invalid_sort_exits_nonzero.
+    result = runner.invoke(app, ["vulns", "--format", "jsonl"])
+    assert result.exit_code != 0
+
+
 def test_news_export_passes_filters_and_writes(tmp_path):
     out = tmp_path / "news.jsonl"
     with patch("dbugs_cli.cli.DbugsClient") as mock_cls:

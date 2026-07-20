@@ -85,6 +85,15 @@ def test_run_export_stops_on_empty_page_despite_count(tmp_path):
     assert len(path.read_text().splitlines()) == 1
 
 
+def test_run_export_json_count_reflects_rows_written_on_guard(tmp_path):
+    # API reports count=100 but page 2 is empty -> json count must match rows written, not 100.
+    path = tmp_path / "out.json"
+    total = run_export(_pager(100, [[{"id": 1}]]), str(path), "json", _console())
+    assert total == 1
+    doc = _json.loads(path.read_text())
+    assert doc == {"count": 1, "rows": [{"id": 1}]}
+
+
 def test_run_export_empty_result_json(tmp_path):
     path = tmp_path / "out.json"
     total = run_export(_pager(0, []), str(path), "json", _console())

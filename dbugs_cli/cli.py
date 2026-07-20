@@ -130,6 +130,9 @@ def vulns(
     if sort_field is None:
         raise typer.BadParameter(f"--sort must be one of {', '.join(SORT_FIELDS)}")
 
+    if export_format and not export_path:
+        raise typer.BadParameter("--format requires --export")
+
     if export_path:
         fmt = export.resolve_format(export_path, export_format)
         sev = [s.upper() for s in severity] if severity else None
@@ -249,6 +252,9 @@ def news(
 ):
     """List / filter security news."""
     state: AppState = ctx.obj
+
+    if export_format and not export_path:
+        raise typer.BadParameter("--format requires --export")
 
     if export_path:
         fmt = export.resolve_format(export_path, export_format)
