@@ -39,3 +39,20 @@ def test_live_detail_has_references(client):
 def test_live_trends(client):
     tl = client.trends()
     assert len(tl.rows) > 0
+
+
+def test_live_news_filtered_by_product(client):
+    nl = client.news(product=["Wordpress"], limit=3)
+    assert nl.count >= 0
+    assert len(nl.rows) <= 3
+
+
+def test_live_suggest_products(client):
+    items = client.suggest_products("word")
+    assert isinstance(items, list)
+    assert any("word" in s.lower() for s in items)
+
+
+def test_live_suggest_popular(client):
+    items = client.suggest_vendors()
+    assert isinstance(items, list) and len(items) > 0

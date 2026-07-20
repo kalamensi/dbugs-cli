@@ -20,15 +20,34 @@ dbugs vulns --fts apache --limit 10           # full-text search
 dbugs vulns --vendor microsoft --severity CRITICAL --has-exploit --sort score
 dbugs vulns --min-score 9 --since 2026-07-01  # score + date filters
 dbugs vuln PT-2026-61063                       # full detail incl. references
-dbugs trends                                   # trending vulnerabilities
+dbugs news                                      # latest security news
+dbugs news --product Wordpress --vendor Microsoft --fts rce
+dbugs news --cve CVE-2026-63030 --since 2026-07-01
+dbugs trends                                    # all 30 trending vulnerabilities
+dbugs trends --min-score 9 --severity CRITICAL --sort posts --limit 10
+dbugs suggest products word                     # discover valid --product values
+dbugs suggest vendors                           # popular vendors (no pattern)
 dbugs trend PT-2026-53941                       # social posts behind a trend
-dbugs news                                      # security news feed
 dbugs news-item <slug>                          # one article
 dbugs researcher <name>                         # researcher profile
 
 # Machine-readable output for any command:
 dbugs --json vulns --fts apache | jq '.rows[].vulner_id'
 ```
+
+### Filtering news
+
+`dbugs news` supports server-side filters: `--fts`, `--product`, `--vendor`,
+`--researcher`, `--cve`, `--category` (all repeatable except `--fts`), and
+`--since`/`--until` (published date range). Use `dbugs suggest products|vendors
+[PATTERN]` to discover valid product/vendor values.
+
+### Filtering trends
+
+The service returns a fixed set of 30 trending vulnerabilities. `dbugs trends`
+filters and sorts them locally: `--min-score`, `--severity`, `--min-posts`,
+`--sort score|posts`, `--asc`, `--limit`. Under `--json` the filtered set is
+emitted.
 
 ## Global options
 
