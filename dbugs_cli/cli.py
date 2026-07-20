@@ -33,6 +33,11 @@ class SuggestField(str, Enum):
     vendors = "vendors"
 
 
+class TrendSort(str, Enum):
+    score = "score"
+    posts = "posts"
+
+
 @dataclass
 class AppState:
     client: DbugsClient
@@ -162,21 +167,19 @@ def trends(
     min_score: float = typer.Option(None, "--min-score", help="Keep trends with score >= this."),
     severity: list[str] = typer.Option(None, "--severity", help="CRITICAL/HIGH/MEDIUM/LOW (repeatable)."),
     min_posts: int = typer.Option(None, "--min-posts", help="Keep trends with at least this many posts."),
-    sort: str = typer.Option(None, "--sort", help="score|posts."),
+    sort: TrendSort = typer.Option(None, "--sort", help="score|posts."),
     ascending: bool = typer.Option(False, "--asc", help="Sort ascending (default descending)."),
     limit: int = typer.Option(None, "--limit", help="Keep only the first N after filter/sort."),
 ):
     """List trending vulnerabilities (filter/sort applied client-side)."""
     state: AppState = ctx.obj
-    if sort is not None and sort not in ("score", "posts"):
-        raise typer.BadParameter("--sort must be 'score' or 'posts'")
     result = state.client.trends()
     result = transform.filter_sort_trends(
         result,
         min_score=min_score,
         severity=[s.upper() for s in severity] if severity else None,
         min_posts=min_posts,
-        sort=sort,
+        sort=sort.value if sort else None,
         descending=not ascending,
         limit=limit,
     )

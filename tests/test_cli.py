@@ -130,6 +130,20 @@ def test_trends_command_json_reflects_filter():
     assert payload["rows"][0]["vulnerability"]["vulner_id"] == "B"
 
 
+def test_trends_command_valid_sort_exits_zero():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.trends.return_value = _trends_fixture()
+        result = runner.invoke(app, ["trends", "--sort", "posts"])
+    assert result.exit_code == 0
+
+
+def test_trends_command_invalid_sort_exits_nonzero():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.trends.return_value = _trends_fixture()
+        result = runner.invoke(app, ["trends", "--sort", "bogus"])
+    assert result.exit_code != 0
+
+
 def test_suggest_products_with_pattern():
     with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
         mock_cls.return_value.suggest_products.return_value = ["Wordpress"]

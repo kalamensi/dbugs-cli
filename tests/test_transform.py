@@ -41,6 +41,11 @@ def test_sort_by_score_puts_none_last_when_desc():
     assert [t.vuln.vulner_id for t in out.rows] == ["A", "B", "C"]
 
 
+def test_sort_by_score_puts_none_first_when_asc():
+    out = filter_sort_trends(_tl(), sort="score", descending=False)
+    assert [t.vuln.vulner_id for t in out.rows] == ["C", "B", "A"]
+
+
 def test_limit_truncates_after_sort():
     out = filter_sort_trends(_tl(), sort="posts", limit=1)
     assert [t.vuln.vulner_id for t in out.rows] == ["B"]
