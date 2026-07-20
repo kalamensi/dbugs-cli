@@ -164,3 +164,65 @@ def test_suggest_invalid_field_errors():
     with patch("dbugs_cli.cli.DbugsClient"):
         result = runner.invoke(app, ["suggest", "bogus"])
     assert result.exit_code != 0
+
+
+def test_vulns_export_jsonl_writes_all_pages(tmp_path):
+    page1 = {"count": 3, "rows": [{"vulner_id": "A"}, {"vulner_id": "B"}]}
+    page2 = {"count": 3, "rows": [{"vulner_id": "C"}]}
+    out = tmp_path / "out.jsonl"
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.search_vulns.side_effect = [
+            VulnList.from_dict(page1),
+            VulnList.from_dict(page2),
+        ]
+        result = runner.invoke(app, ["vulns", "--fts", "x", "--export", str(out)])
+    assert result.exit_code == 0
+    assert result.stdout == ""  # normal table/json output suppressed
+    lines = out.read_text().splitlines()
+    assert [json.loads(l)["vulner_id"] for l in lines] == ["A", "B", "C"]
+
+
+def test_vulns_export_json_format_and_batch(tmp_path):
+    out = tmp_path / "data.json"
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.search_vulns.return_value = VulnList.from_dict(
+            {"count": 1, "rows": [{"vulner_id": "A"}]}
+        )
+        result = runner.invoke(
+            app, ["vulns", "--vendor", "microsoft", "--export", str(out)]
+        )
+        kwargs = mock_cls.return_value.search_vulns.call_args.kwargs
+    assert result.exit_code == 0
+    assert json.loads(out.read_text()) == {"count": 1, "rows": [{"vulner_id": "A"}]}
+    assert kwargs["limit"] == 100  # export.BATCH, not the --limit default of 20
+    assert kwargs["vendor"] == ["microsoft"]
+
+
+def test_vulns_export_format_override(tmp_path):
+    out = tmp_path / "data.json"  # extension says json...
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.search_vulns.return_value = VulnList.from_dict(
+            {"count": 1, "rows": [{"vulner_id": "A"}]}
+        )
+        result = runner.invoke(
+            app, ["vulns", "--export", str(out), "--format", "jsonl"]
+        )
+    assert result.exit_code == 0
+    # ...but --format jsonl wins: one bare object per line, no {"count"} wrapper.
+    assert json.loads(out.read_text().splitlines()[0]) == {"vulner_id": "A"}
+
+
+def test_news_export_passes_filters_and_writes(tmp_path):
+    out = tmp_path / "news.jsonl"
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.news.return_value = NewsList.from_dict(
+            {"count": 1, "rows": [{"slug": "s1"}]}
+        )
+        result = runner.invoke(
+            app, ["news", "--product", "Wordpress", "--export", str(out)]
+        )
+        kwargs = mock_cls.return_value.news.call_args.kwargs
+    assert result.exit_code == 0
+    assert json.loads(out.read_text().splitlines()[0])["slug"] == "s1"
+    assert kwargs["product"] == ["Wordpress"]
+    assert kwargs["limit"] == 100

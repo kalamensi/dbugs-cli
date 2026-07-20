@@ -10,7 +10,7 @@ from typing import Callable
 import typer
 from rich.console import Console
 
-from dbugs_cli import formatters, transform
+from dbugs_cli import export, formatters, transform
 from dbugs_cli.client import DbugsAPIError, DbugsClient
 
 app = typer.Typer(
@@ -121,12 +121,42 @@ def vulns(
     ascending: bool = typer.Option(False, "--asc", help="Sort ascending (default descending)."),
     limit: int = typer.Option(20, "--limit", help="Rows per page."),
     page: int = typer.Option(1, "--page", help="Page number."),
+    export_path: str = typer.Option(None, "--export", help="Write the full filtered result set to this file (auto-paginates; ignores --limit/--page)."),
+    export_format: str = typer.Option(None, "--format", help="Export format: json or jsonl (default inferred from --export file extension)."),
 ):
     """Search / list vulnerabilities."""
     state: AppState = ctx.obj
     sort_field = SORT_FIELDS.get(sort)
     if sort_field is None:
         raise typer.BadParameter(f"--sort must be one of {', '.join(SORT_FIELDS)}")
+
+    if export_path:
+        fmt = export.resolve_format(export_path, export_format)
+        sev = [s.upper() for s in severity] if severity else None
+
+        def fetch_page(page_num: int):
+            result = state.client.search_vulns(
+                fts=fts,
+                vendor=vendor or None,
+                product=product or None,
+                researcher=researcher or None,
+                severity=sev,
+                score_from=min_score,
+                score_to=max_score,
+                has_exploit=True if has_exploit else None,
+                has_fix=True if has_fix else None,
+                created_from=since,
+                created_to=until,
+                sort=sort_field,
+                descending=not ascending,
+                limit=export.BATCH,
+                page=page_num,
+            )
+            return result.count, result.raw.get("rows", [])
+
+        export.run_export(fetch_page, export_path, fmt, state.err_console)
+        return
+
     result = state.client.search_vulns(
         fts=fts,
         vendor=vendor or None,
@@ -214,9 +244,33 @@ def news(
     until: str = typer.Option(None, "--until", help="Published on/before YYYY-MM-DD."),
     limit: int = typer.Option(20, "--limit", help="Items per page."),
     page: int = typer.Option(1, "--page", help="Page number."),
+    export_path: str = typer.Option(None, "--export", help="Write the full filtered result set to this file (auto-paginates; ignores --limit/--page)."),
+    export_format: str = typer.Option(None, "--format", help="Export format: json or jsonl (default inferred from --export file extension)."),
 ):
     """List / filter security news."""
     state: AppState = ctx.obj
+
+    if export_path:
+        fmt = export.resolve_format(export_path, export_format)
+
+        def fetch_page(page_num: int):
+            result = state.client.news(
+                fts=fts,
+                product=product or None,
+                vendor=vendor or None,
+                researcher=researcher or None,
+                cve_id=cve or None,
+                category=category or None,
+                published_from=since,
+                published_to=until,
+                limit=export.BATCH,
+                page=page_num,
+            )
+            return result.count, result.raw.get("rows", [])
+
+        export.run_export(fetch_page, export_path, fmt, state.err_console)
+        return
+
     result = state.client.news(
         fts=fts,
         product=product or None,
