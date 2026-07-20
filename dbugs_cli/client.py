@@ -180,9 +180,44 @@ class DbugsClient:
             "GET", f"trending/{vuln_id}/posts", params={"limit": limit, "page": page}
         )
 
-    def news(self, limit: int = 20, page: int = 1, locale: str | None = None) -> NewsList:
-        body = {"limit": limit, "page": page, "locale": locale or self.locale}
+    def news(
+        self,
+        *,
+        limit: int = 20,
+        page: int = 1,
+        fts: str | None = None,
+        product: list[str] | None = None,
+        vendor: list[str] | None = None,
+        researcher: list[str] | None = None,
+        cve_id: list[str] | None = None,
+        category: list[str] | None = None,
+        published_from: str | None = None,
+        published_to: str | None = None,
+        locale: str | None = None,
+    ) -> NewsList:
+        body: dict = {"limit": limit, "page": page, "locale": locale or self.locale}
+        optional = {
+            "fts": fts,
+            "product": list(product) if product else None,
+            "vendor": list(vendor) if vendor else None,
+            "researcher": list(researcher) if researcher else None,
+            "cve_id": list(cve_id) if cve_id else None,
+            "category": list(category) if category else None,
+            "published_from": published_from,
+            "published_to": published_to,
+        }
+        body.update({k: v for k, v in optional.items() if v is not None})
         return NewsList.from_dict(self._request("POST", "news/", json_body=body))
+
+    def suggest_products(self, pattern: str | None = None) -> list[str]:
+        if pattern:
+            return self._request("GET", "news/products", params={"search_pattern": pattern})
+        return self._request("GET", "news/products/popular")
+
+    def suggest_vendors(self, pattern: str | None = None) -> list[str]:
+        if pattern:
+            return self._request("GET", "news/vendors", params={"search_pattern": pattern})
+        return self._request("GET", "news/vendors/popular")
 
     def get_news(self, slug: str, locale: str | None = None) -> NewsItem:
         return NewsItem.from_dict(

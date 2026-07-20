@@ -171,3 +171,57 @@ def test_researcher_returns_raw_dict():
     )
     r = DbugsClient().researcher("alice")
     assert r["author_count"] == 3
+
+
+@respx.mock
+def test_news_builds_filtered_body_and_drops_none():
+    route = respx.post(f"{DEFAULT_BASE_URL}news/").mock(
+        return_value=httpx.Response(200, json=_fx("news_list.json"))
+    )
+    nl = DbugsClient().news(
+        fts="wordpress", product=["Wordpress"], vendor=["Microsoft"],
+        cve_id=["CVE-2026-63030"], category=["cve"],
+        published_from="2026-07-01", published_to="2026-07-20",
+        limit=5, page=2,
+    )
+    assert nl.rows[0].slug == "critical-widget"
+    body = json.loads(route.calls.last.request.content)
+    assert body["fts"] == "wordpress"
+    assert body["product"] == ["Wordpress"]
+    assert body["vendor"] == ["Microsoft"]
+    assert body["cve_id"] == ["CVE-2026-63030"]
+    assert body["category"] == ["cve"]
+    assert body["published_from"] == "2026-07-01"
+    assert body["published_to"] == "2026-07-20"
+    assert body["limit"] == 5 and body["page"] == 2
+    assert "researcher" not in body  # None dropped
+
+
+@respx.mock
+def test_suggest_products_with_pattern_hits_search_path():
+    route = respx.get(f"{DEFAULT_BASE_URL}news/products").mock(
+        return_value=httpx.Response(200, json=["Wordpress", "Microsoft Word"])
+    )
+    result = DbugsClient().suggest_products("word")
+    assert result == ["Wordpress", "Microsoft Word"]
+    assert dict(route.calls.last.request.url.params) == {"search_pattern": "word"}
+
+
+@respx.mock
+def test_suggest_products_without_pattern_hits_popular():
+    respx.get(f"{DEFAULT_BASE_URL}news/products/popular").mock(
+        return_value=httpx.Response(200, json=["Windows", "Android"])
+    )
+    assert DbugsClient().suggest_products() == ["Windows", "Android"]
+
+
+@respx.mock
+def test_suggest_vendors_paths():
+    respx.get(f"{DEFAULT_BASE_URL}news/vendors").mock(
+        return_value=httpx.Response(200, json=["Microsoft"])
+    )
+    respx.get(f"{DEFAULT_BASE_URL}news/vendors/popular").mock(
+        return_value=httpx.Response(200, json=["Google"])
+    )
+    assert DbugsClient().suggest_vendors("micro") == ["Microsoft"]
+    assert DbugsClient().suggest_vendors() == ["Google"]
