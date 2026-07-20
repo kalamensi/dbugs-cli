@@ -1,6 +1,7 @@
 """Render dbugs models as Rich renderables. Pure functions, no I/O."""
 from __future__ import annotations
 
+from rich.columns import Columns
 from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.table import Table
@@ -200,3 +201,10 @@ def render_researcher(data: dict) -> RenderableType:
         if data.get(key):
             table.add_row(label, str(data[key]))
     return Panel(table, title=str(prof.get("name", "researcher")), expand=False)
+
+
+def render_suggestions(items: list[str], title: str) -> RenderableType:
+    if not items:
+        return Panel(Text("(no matches)", style="dim"), title=title, expand=False)
+    body = Columns([Text(f"• {item}") for item in items], equal=True, padding=(0, 2))
+    return Panel(body, title=f"{title} ({len(items)})", expand=False)

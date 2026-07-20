@@ -77,3 +77,13 @@ def test_render_researcher_shows_name():
          "low_severity": 0, "null_severity": 0, "x_link": None,
          "github_link": None, "linkedin_link": None}))
     assert "alice" in out
+
+
+def test_render_suggestions_lists_items():
+    out = _text(formatters.render_suggestions(["Windows", "Android", "Linux"], "Products"))
+    assert "Windows" in out and "Android" in out and "Linux" in out
+
+
+def test_render_suggestions_empty():
+    out = _text(formatters.render_suggestions([], "Products"))
+    assert "no matches" in out.lower()

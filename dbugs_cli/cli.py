@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from enum import Enum
 from functools import wraps
 from typing import Callable
 
 import typer
 from rich.console import Console
 
-from dbugs_cli import formatters
+from dbugs_cli import formatters, transform
 from dbugs_cli.client import DbugsAPIError, DbugsClient
 
 app = typer.Typer(
@@ -25,6 +26,11 @@ SORT_FIELDS = {
     "updated": "updated",
     "severity": "severity",
 }
+
+
+class SuggestField(str, Enum):
+    products = "products"
+    vendors = "vendors"
 
 
 @dataclass
@@ -151,10 +157,29 @@ def vuln(
 
 @app.command()
 @command
-def trends(ctx: typer.Context):
-    """List trending vulnerabilities."""
+def trends(
+    ctx: typer.Context,
+    min_score: float = typer.Option(None, "--min-score", help="Keep trends with score >= this."),
+    severity: list[str] = typer.Option(None, "--severity", help="CRITICAL/HIGH/MEDIUM/LOW (repeatable)."),
+    min_posts: int = typer.Option(None, "--min-posts", help="Keep trends with at least this many posts."),
+    sort: str = typer.Option(None, "--sort", help="score|posts."),
+    ascending: bool = typer.Option(False, "--asc", help="Sort ascending (default descending)."),
+    limit: int = typer.Option(None, "--limit", help="Keep only the first N after filter/sort."),
+):
+    """List trending vulnerabilities (filter/sort applied client-side)."""
     state: AppState = ctx.obj
+    if sort is not None and sort not in ("score", "posts"):
+        raise typer.BadParameter("--sort must be 'score' or 'posts'")
     result = state.client.trends()
+    result = transform.filter_sort_trends(
+        result,
+        min_score=min_score,
+        severity=[s.upper() for s in severity] if severity else None,
+        min_posts=min_posts,
+        sort=sort,
+        descending=not ascending,
+        limit=limit,
+    )
     _emit(state, result, formatters.render_trends(result))
 
 
@@ -176,12 +201,31 @@ def trend(
 @command
 def news(
     ctx: typer.Context,
+    fts: str = typer.Option(None, "--fts", help="Full-text search."),
+    product: list[str] = typer.Option(None, "--product", help="Filter by product (repeatable)."),
+    vendor: list[str] = typer.Option(None, "--vendor", help="Filter by vendor (repeatable)."),
+    researcher: list[str] = typer.Option(None, "--researcher", help="Filter by researcher (repeatable)."),
+    cve: list[str] = typer.Option(None, "--cve", help="Filter by CVE id (repeatable)."),
+    category: list[str] = typer.Option(None, "--category", help="Filter by category (repeatable)."),
+    since: str = typer.Option(None, "--since", help="Published on/after YYYY-MM-DD."),
+    until: str = typer.Option(None, "--until", help="Published on/before YYYY-MM-DD."),
     limit: int = typer.Option(20, "--limit", help="Items per page."),
     page: int = typer.Option(1, "--page", help="Page number."),
 ):
-    """List security news."""
+    """List / filter security news."""
     state: AppState = ctx.obj
-    result = state.client.news(limit=limit, page=page)
+    result = state.client.news(
+        fts=fts,
+        product=product or None,
+        vendor=vendor or None,
+        researcher=researcher or None,
+        cve_id=cve or None,
+        category=category or None,
+        published_from=since,
+        published_to=until,
+        limit=limit,
+        page=page,
+    )
     _emit(state, result, formatters.render_news_list(result))
 
 
@@ -195,6 +239,24 @@ def news_item(
     state: AppState = ctx.obj
     result = state.client.get_news(slug)
     _emit(state, result, formatters.render_news_item(result))
+
+
+@app.command()
+@command
+def suggest(
+    ctx: typer.Context,
+    field: SuggestField = typer.Argument(..., help="What to suggest: products or vendors."),
+    pattern: str = typer.Argument(None, help="Optional search text; omit for the popular list."),
+):
+    """Suggest valid news --product / --vendor filter values."""
+    state: AppState = ctx.obj
+    if field is SuggestField.products:
+        result = state.client.suggest_products(pattern)
+        title = "Products"
+    else:
+        result = state.client.suggest_vendors(pattern)
+        title = "Vendors"
+    _emit(state, result, formatters.render_suggestions(result, title))
 
 
 @app.command()
