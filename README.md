@@ -19,6 +19,8 @@ dbugs stats                                   # database totals
 dbugs vulns --fts apache --limit 10           # full-text search
 dbugs vulns --vendor microsoft --severity CRITICAL --has-exploit --sort score
 dbugs vulns --min-score 9 --since 2026-07-01  # score + date filters
+dbugs vulns --vendor microsoft --export vulns.jsonl   # all matches -> JSONL
+dbugs news --product Wordpress --export news.json      # all matches -> JSON
 dbugs vuln PT-2026-61063                       # full detail incl. references
 dbugs news                                      # latest security news
 dbugs news --product Wordpress --vendor Microsoft --fts rce
@@ -48,6 +50,22 @@ The service returns a fixed set of 30 trending vulnerabilities. `dbugs trends`
 filters and sorts them locally: `--min-score`, `--severity`, `--min-posts`,
 `--sort score|posts`, `--asc`, `--limit`. Under `--json` the filtered set is
 emitted.
+
+### Exporting full results
+
+`dbugs vulns` and `dbugs news` accept `--export PATH` to write the **entire**
+filtered result set to a file, auto-paginating through every page (the API's
+own paging cap no longer applies). While exporting, `--limit`/`--page` are
+ignored and normal table/`--json` output is suppressed; progress is printed to
+stderr.
+
+The format is inferred from the file extension — `.jsonl` writes one JSON
+object per line (streamed, best for large results), any other extension writes
+a single `{"count": N, "rows": [...]}` document. Override with
+`--format json|jsonl`.
+
+    dbugs vulns --vendor microsoft --severity CRITICAL --export out.jsonl
+    dbugs news --product Wordpress --export news.json --format jsonl
 
 ## Global options
 
