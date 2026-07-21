@@ -61,3 +61,43 @@ def test_rebuilds_raw_from_kept_rows():
 def test_no_filters_keeps_all():
     out = filter_sort_trends(_tl())
     assert out.count == 3
+
+
+from dbugs_cli.models import VulnDetail
+from dbugs_cli.transform import filter_references
+
+
+def _detail():
+    return VulnDetail.from_dict({
+        "vulner_id": "PT-1", "cve_id": "CVE-1",
+        "references": [
+            {"ref_url": "https://a", "domain": "a", "source": "Note"},
+            {"ref_url": "https://b", "domain": "b", "source": "Exploit"},
+            {"ref_url": "https://c", "domain": "c", "source": "Vendor Advisory"},
+        ],
+    })
+
+
+def test_filter_references_none_returns_unchanged():
+    d = _detail()
+    assert filter_references(d, source=None) is d
+    assert filter_references(d, source=[]) is d
+
+
+def test_filter_references_exact_case_insensitive():
+    out = filter_references(_detail(), source=["exploit"])
+    assert [r.source for r in out.references] == ["Exploit"]
+    # exact, not substring: "vendor" must NOT match "Vendor Advisory"
+    assert filter_references(_detail(), source=["vendor"]).references == []
+
+
+def test_filter_references_multiple_sources():
+    out = filter_references(_detail(), source=["Note", "Vendor Advisory"])
+    assert {r.source for r in out.references} == {"Note", "Vendor Advisory"}
+
+
+def test_filter_references_narrows_raw():
+    out = filter_references(_detail(), source=["Exploit"])
+    assert [r["source"] for r in out.raw["references"]] == ["Exploit"]
+    # untouched payload keys survive
+    assert out.raw["vulner_id"] == "PT-1"
