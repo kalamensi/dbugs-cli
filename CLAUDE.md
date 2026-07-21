@@ -74,5 +74,10 @@ DBUGS_LIVE=1 pytest    # ALSO run tests/test_live.py against the real API
 
 Design specs and implementation plans live under `docs/superpowers/`
 (`specs/` and `plans/`), dated by feature. Consult the relevant spec before
-extending a feature; keep `README.md` (the user-facing command reference) in
-sync when commands or options change.
+extending a feature.
+
+**README is part of the feature, not a follow-up.** Any new command, new or
+renamed option, or changed flag/output behavior MUST land with the matching
+`README.md` update in the *same* change (branch/PR) as the code — never
+deferred. A feature is not done until its user-facing docs are updated. When
+writing an implementation plan, include a dedicated README/docs task.
