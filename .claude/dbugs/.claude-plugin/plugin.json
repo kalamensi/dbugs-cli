@@ -1,0 +1,10 @@
+{
+  "name": "dbugs",
+  "version": "0.1.0",
+  "description": "Query and triage the dbugs.ptsecurity.com vulnerability database from Claude Code via the read-only dbugs CLI.",
+  "author": {
+    "name": "kalamensi",
+    "email": "131133073+kalamensi@users.noreply.github.com"
+  },
+  "keywords": ["security", "vulnerabilities", "cve", "threat-intel", "dbugs"]
+}
