@@ -40,6 +40,7 @@ dbugs vulns --min-score 9 --since 2026-07-01  # score + date filters
 dbugs vulns --vendor microsoft --export vulns.jsonl   # all matches -> JSONL
 dbugs news --product Wordpress --export news.json      # all matches -> JSON
 dbugs vuln PT-2026-61063                       # full detail incl. references
+dbugs vuln PT-2026-61063 --source Exploit --source Note   # filter references by source
 dbugs news                                      # latest security news
 dbugs news --product Wordpress --vendor Microsoft --fts rce
 dbugs news --cve CVE-2026-63030 --since 2026-07-01
@@ -68,6 +69,18 @@ The service returns a fixed set of 30 trending vulnerabilities. `dbugs trends`
 filters and sorts them locally: `--min-score`, `--severity`, `--min-posts`,
 `--sort score|posts`, `--asc`, `--limit`. Under `--json` the filtered set is
 emitted.
+
+### Filtering vulnerability references
+
+`dbugs vuln <id>` accepts `--source` (repeatable) to keep only references
+whose source matches — exact, case-insensitive. Common sources are `Exploit`,
+`Note`, and `Vendor Advisory` (quote multi-word values). The filter applies to
+both the table and `--json` output.
+
+```bash
+dbugs vuln PT-2026-61063 --source Exploit
+dbugs --json vuln PT-2026-61063 --source "Vendor Advisory" | jq '.references'
+```
 
 ### Exporting full results
 
