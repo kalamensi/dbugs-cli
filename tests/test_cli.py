@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from dbugs_cli.cli import app
 from dbugs_cli.client import DbugsAPIError
-from dbugs_cli.models import NewsList, Stats, TrendList, VulnList
+from dbugs_cli.models import NewsList, Stats, TrendList, VulnDetail, VulnList
 
 runner = CliRunner()
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -234,3 +234,45 @@ def test_news_export_passes_filters_and_writes(tmp_path):
     assert json.loads(out.read_text().splitlines()[0])["slug"] == "s1"
     assert kwargs["product"] == ["Wordpress"]
     assert kwargs["limit"] == 100
+
+
+def _detail_fixture():
+    return VulnDetail.from_dict({
+        "vulner_id": "PT-2026-1", "cve_id": "CVE-2026-1",
+        "max_score": 9.8, "max_severity": "CRITICAL",
+        "references": [
+            {"ref_url": "https://note", "domain": "note.io", "source": "Note"},
+            {"ref_url": "https://exp", "domain": "exp.io", "source": "Exploit"},
+            {"ref_url": "https://adv", "domain": "adv.io", "source": "Vendor Advisory"},
+        ],
+    })
+
+
+def test_vuln_source_filter_narrows_table():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.get_vuln.return_value = _detail_fixture()
+        result = runner.invoke(app, ["vuln", "CVE-2026-1", "--source", "exploit"])
+    assert result.exit_code == 0
+    assert "exp.io" in result.stdout
+    assert "note.io" not in result.stdout
+    assert "adv.io" not in result.stdout
+
+
+def test_vuln_source_filter_narrows_json():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.get_vuln.return_value = _detail_fixture()
+        result = runner.invoke(
+            app, ["--json", "vuln", "CVE-2026-1", "--source", "Vendor Advisory"]
+        )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert [r["source"] for r in payload["references"]] == ["Vendor Advisory"]
+    assert payload["vulner_id"] == "PT-2026-1"
+
+
+def test_vuln_without_source_shows_all_references():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.get_vuln.return_value = _detail_fixture()
+        result = runner.invoke(app, ["vuln", "CVE-2026-1"])
+    assert result.exit_code == 0
+    assert "note.io" in result.stdout and "exp.io" in result.stdout

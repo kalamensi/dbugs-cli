@@ -186,10 +186,16 @@ def vuln(
     ctx: typer.Context,
     vuln_id: str = typer.Argument(..., help="Vulnerability id, e.g. PT-2026-61063 or CVE id."),
     fts: str = typer.Option(None, "--fts", help="Highlight term."),
+    source: list[str] = typer.Option(
+        None, "--source",
+        help="Filter references by source, e.g. Exploit, Note, 'Vendor Advisory' "
+             "(repeatable, case-insensitive).",
+    ),
 ):
     """Show full detail for one vulnerability (incl. references)."""
     state: AppState = ctx.obj
     result = state.client.get_vuln(vuln_id, fts=fts)
+    result = transform.filter_references(result, source=source or None)
     _emit(state, result, formatters.render_vuln_detail(result))
 
 
