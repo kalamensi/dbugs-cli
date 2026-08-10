@@ -11,7 +11,9 @@ from typing import Callable
 import typer
 from rich.console import Console
 
-BATCH = 100
+# Page size for auto-pagination. The dbugs API caps `limit` at 50 — a larger
+# value is rejected with HTTP 422 "Validation error", so exports must page at 50.
+BATCH = 50
 
 
 def resolve_format(path: str, override: str | None) -> str:

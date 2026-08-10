@@ -103,12 +103,35 @@ a single `{"count": N, "rows": [...]}` document. Override with
 - `--json` — emit raw API JSON instead of tables.
 - `--locale en` — response locale.
 - `--timeout 30` — HTTP timeout in seconds.
+- `--insecure` / `-k` — disable TLS verification (see TLS note below). Also
+  settable with `DBUGS_INSECURE=1`.
 
 ## Notes
 
 The service sits behind anti-bot protection; the client sends the required
 browser headers automatically. No API key or login is needed. The tool is
 read-only.
+
+### TLS: the Russian Trusted Root CA
+
+`dbugs.ptsecurity.com` serves a valid `*.ptsecurity.com` certificate whose chain
+terminates at the **"Russian Trusted Root CA"** (Russia's national CA). No
+mainstream trust store (certifi — which `httpx` uses — Mozilla, Debian, or
+Chromium) ships that root, so out of the box the client rejects the connection
+with `CERTIFICATE_VERIFY_FAILED`. This is a missing trust anchor, not anti-bot
+or geo/IP blocking.
+
+Two ways to connect:
+
+```bash
+dbugs --insecure stats          # or -k
+DBUGS_INSECURE=1 dbugs stats     # same, via env (handy for scripts)
+```
+
+Either disables TLS verification **for this tool only** — the default stays
+secure. The connection is then unauthenticated (no cert validation), so only use
+it when you accept that trade-off for this host. To keep verification on instead,
+add the Russian Trusted Root + Sub CA to a bundle and point your trust store at it.
 
 ## Development
 

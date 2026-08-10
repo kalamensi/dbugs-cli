@@ -9,9 +9,35 @@ from dbugs_cli.client import (
     DEFAULT_BASE_URL,
     DEFAULT_REFERER,
     DEFAULT_UA,
+    INSECURE_ENV,
     DbugsAPIError,
     DbugsClient,
+    _env_insecure,
 )
+
+
+def test_env_insecure_true_for_truthy_values(monkeypatch):
+    for value in ["1", "true", "TRUE", "yes", "on", "  On  "]:
+        monkeypatch.setenv(INSECURE_ENV, value)
+        assert _env_insecure() is True
+
+
+def test_env_insecure_false_when_unset_or_falsy(monkeypatch):
+    monkeypatch.delenv(INSECURE_ENV, raising=False)
+    assert _env_insecure() is False
+    for value in ["", "0", "false", "no", "off", "nope"]:
+        monkeypatch.setenv(INSECURE_ENV, value)
+        assert _env_insecure() is False
+
+
+def test_client_accepts_verify_param_and_env_fallback(monkeypatch):
+    # All three construction paths must build cleanly (offline, no request).
+    DbugsClient(verify=False).close()
+    DbugsClient(verify=True).close()
+    monkeypatch.setenv(INSECURE_ENV, "1")
+    DbugsClient().close()  # verify=None -> env fallback (insecure)
+    monkeypatch.delenv(INSECURE_ENV, raising=False)
+    DbugsClient().close()  # verify=None -> env fallback (secure)
 
 
 @respx.mock

@@ -52,9 +52,17 @@ def main(
     json_output: bool = typer.Option(False, "--json", help="Emit raw API JSON."),
     locale: str = typer.Option("en", "--locale", help="Response locale."),
     timeout: float = typer.Option(30.0, "--timeout", help="HTTP timeout (seconds)."),
+    insecure: bool = typer.Option(
+        False, "--insecure", "-k",
+        help="Disable TLS verification. dbugs serves a cert chaining to the "
+        "Russian Trusted Root CA, which no trust store ships; the connection is "
+        "then unauthenticated. Also settable via DBUGS_INSECURE=1.",
+    ),
 ):
     ctx.obj = AppState(
-        client=DbugsClient(locale=locale, timeout=timeout),
+        # verify=False when --insecure is passed; otherwise None lets the client
+        # fall back to the DBUGS_INSECURE env default (secure unless set).
+        client=DbugsClient(locale=locale, timeout=timeout, verify=False if insecure else None),
         json_output=json_output,
         console=Console(),
         err_console=Console(stderr=True),

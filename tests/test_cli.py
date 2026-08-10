@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
+from dbugs_cli import export
 from dbugs_cli.cli import app
 from dbugs_cli.client import DbugsAPIError
 from dbugs_cli.models import NewsList, Stats, TrendList, VulnDetail, VulnList
@@ -48,6 +49,22 @@ def test_vulns_command_passes_filters_to_client():
     assert kwargs["has_exploit"] is True
     assert kwargs["sort"] == "max_score"
     assert kwargs["limit"] == 5
+
+
+def test_insecure_flag_disables_tls_verification():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.stats.return_value = Stats.from_dict(_fx("stats.json"))
+        runner.invoke(app, ["--insecure", "stats"])
+        kwargs = mock_cls.call_args.kwargs
+    assert kwargs["verify"] is False
+
+
+def test_default_leaves_tls_verification_to_env():
+    with patch("dbugs_cli.cli.DbugsClient") as mock_cls:
+        mock_cls.return_value.stats.return_value = Stats.from_dict(_fx("stats.json"))
+        runner.invoke(app, ["stats"])
+        kwargs = mock_cls.call_args.kwargs
+    assert kwargs["verify"] is None
 
 
 def test_api_error_prints_to_stderr_and_exits_nonzero():
@@ -194,7 +211,7 @@ def test_vulns_export_json_format_and_batch(tmp_path):
         kwargs = mock_cls.return_value.search_vulns.call_args.kwargs
     assert result.exit_code == 0
     assert json.loads(out.read_text()) == {"count": 1, "rows": [{"vulner_id": "A"}]}
-    assert kwargs["limit"] == 100  # export.BATCH, not the --limit default of 20
+    assert kwargs["limit"] == export.BATCH  # export page size, not the --limit default of 20
     assert kwargs["vendor"] == ["microsoft"]
 
 
@@ -233,7 +250,7 @@ def test_news_export_passes_filters_and_writes(tmp_path):
     assert result.exit_code == 0
     assert json.loads(out.read_text().splitlines()[0])["slug"] == "s1"
     assert kwargs["product"] == ["Wordpress"]
-    assert kwargs["limit"] == 100
+    assert kwargs["limit"] == export.BATCH
 
 
 def _detail_fixture():

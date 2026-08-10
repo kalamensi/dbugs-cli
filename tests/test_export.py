@@ -5,7 +5,14 @@ import typer
 
 from rich.console import Console
 
+from dbugs_cli import export
 from dbugs_cli.export import resolve_format, run_export
+
+
+def test_batch_within_api_page_limit():
+    # The dbugs API rejects limit > 50 with HTTP 422; the export page size must
+    # stay within that cap or every export fails.
+    assert export.BATCH <= 50
 
 
 def test_resolve_format_infers_jsonl_from_extension():

@@ -5,6 +5,7 @@ required to pass the QRATOR anti-bot layer.
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import httpx
@@ -24,6 +25,22 @@ DEFAULT_UA = (
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 DEFAULT_REFERER = "https://dbugs.ptsecurity.com/"
+
+INSECURE_ENV = "DBUGS_INSECURE"
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _env_insecure() -> bool:
+    """Whether ``DBUGS_INSECURE`` asks us to disable TLS verification.
+
+    dbugs.ptsecurity.com serves a valid ``*.ptsecurity.com`` cert whose chain
+    terminates at the "Russian Trusted Root CA" (Russia's national CA), which
+    no mainstream trust store (certifi/Mozilla/Debian/Chromium) ships — so the
+    default client rejects it with ``CERTIFICATE_VERIFY_FAILED``. Set
+    ``DBUGS_INSECURE=1`` (or pass ``--insecure``) to disable verification for
+    THIS tool; the connection is then unauthenticated. The default stays secure.
+    """
+    return os.environ.get(INSECURE_ENV, "").strip().lower() in _TRUTHY
 
 
 class DbugsAPIError(Exception):
@@ -47,12 +64,18 @@ class DbugsClient:
         base_url: str = DEFAULT_BASE_URL,
         locale: str = "en",
         timeout: float = 30.0,
+        verify: bool | None = None,
         client: httpx.Client | None = None,
     ):
         self.locale = locale
+        # verify=None -> fall back to the DBUGS_INSECURE env default. An explicit
+        # bool (e.g. from the --insecure flag) always wins. See _env_insecure.
+        if verify is None:
+            verify = not _env_insecure()
         self._client = client or httpx.Client(
             base_url=base_url,
             timeout=timeout,
+            verify=verify,
             headers={
                 "User-Agent": DEFAULT_UA,
                 "Referer": DEFAULT_REFERER,
